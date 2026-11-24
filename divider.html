@@ -1,5 +1,16 @@
 <!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Physics Live Lab</title><style>
 *{box-sizing:border-box}body{margin:0;font:16px Arial,sans-serif;color:#17365d;background:white;padding:12px}#app{height:calc(100vh - 24px);display:flex;flex-direction:column;gap:8px}header{display:flex;align-items:center;gap:12px}h1{margin:0;font-size:clamp(16px,2.6vw,28px);flex:1}.brand{font-size:12px;letter-spacing:1px;font-weight:bold}button,select{background:#eaf2f8;border:1px solid #a9c1d7;border-radius:6px;color:#17365d;padding:8px;cursor:pointer;font-weight:bold}#q{margin:0;font-size:clamp(12px,1.65vw,19px);font-weight:bold}.main{display:grid;grid-template-columns:1.35fr 1fr;gap:12px;min-height:0;flex:1}.left{display:flex;flex-direction:column;min-height:0;background:#f8fafc;border:1px solid #d1deea;border-radius:9px;overflow:hidden}.left svg{width:100%;height:100%;min-height:0;flex:1}.right{display:flex;flex-direction:column;gap:6px;overflow:auto}.metrics{display:grid;grid-template-columns:1fr 1fr;gap:6px}.metric{background:#eaf2f8;border-radius:7px;padding:7px}.metric span{font-size:clamp(10px,1.2vw,14px)}.metric strong{display:block;font-size:clamp(16px,2.7vw,29px);margin-top:3px}.metric:nth-child(even) strong{color:#b45309}.control{padding:2px 0}.control label{display:flex;justify-content:space-between;font-size:clamp(12px,1.4vw,16px);font-weight:bold}input[type=range]{width:100%;accent-color:#1f4e79;margin:6px 0;cursor:pointer}#formula,#note{margin:0;padding:7px 9px;border-radius:6px;background:#fff3db;font-size:clamp(11px,1.4vw,16px)}#note{background:#eaf2f8}.bar{display:flex;height:25px;margin:5px 10px 10px;overflow:hidden;border-radius:5px;flex-shrink:0}.bar span{display:flex;align-items:center;justify-content:center;color:white;overflow:hidden;white-space:nowrap;font-size:12px;font-weight:bold}svg text{font:16px Arial,sans-serif;fill:#17365d}svg .val{font-weight:bold;font-size:20px}svg .out{fill:#b45309;font-weight:bold}svg .cur{fill:#137a53;font-weight:bold}svg .wire{fill:none;stroke:#17365d;stroke-width:3;stroke-linejoin:round;stroke-linecap:round}.foot{font-size:11px;color:#65778a}#hit{cursor:ew-resize;touch-action:none}
+</style><style id="touch-controls-style">
+html,body{overscroll-behavior:none}
+#controls{touch-action:pan-y}
+.touch-range-row{display:grid;grid-template-columns:42px minmax(0,1fr) 42px;align-items:center;gap:5px;margin:2px 0 4px}
+.touch-range-row input[type=range]{width:100%;min-width:0;height:40px;margin:0;touch-action:none;user-select:none;-webkit-user-select:none;cursor:ew-resize}
+.touch-range-row input[type=range]::-webkit-slider-thumb{width:26px;height:26px}
+.touch-range-row button{min-width:42px;height:40px;margin:0;padding:0;font-size:24px;line-height:1;touch-action:none;user-select:none;-webkit-user-select:none}
+button,select,input[type=checkbox]{touch-action:manipulation}
+button:not(.touch-adjust){min-height:38px}
+label:has(.touch-range-row){margin-top:7px}
+@media (max-height:520px){.touch-range-row{grid-template-columns:36px minmax(0,1fr) 36px;gap:3px;margin:0}.touch-range-row button{min-width:36px;height:34px}.touch-range-row input[type=range]{height:34px}label:has(.touch-range-row){margin-top:4px}}
 </style><div id="app"><header><span class="brand">PHYSICS LIVE LAB</span><h1 id="title"></h1><button id="hide">Hide readings</button><button id="reset">Reset</button></header><p id="q"></p><div class="main"><div class="left"><svg id="svg" viewBox="0 0 620 340" aria-label="Circuit simulation"></svg><div id="bar" class="bar"></div></div><div class="right"><div class="metrics" id="metrics"></div><div id="controls"></div><div id="formula"></div><p id="note"></p></div></div><div class="foot">Ideal DC supply • live calculations • drag the sliders or the potentiometer contact.</div></div><script>
 "use strict";
 const modes={ohm:['Resistance and current','What changes when resistance increases?',{v:12,r:6}],ratio:['Voltage distribution','Which resistor receives the greatest share of the voltage?',{v:10,a:20,b:30,c:50}],divider:['Potential divider','Increase R₂: can current fall while output voltage rises?',{v:12,a:10,b:10}],sensor:['LDR and street lighting','Change light intensity and observe the separate lamp switch.',{v:12,a:10,light:85,pos:'bottom'}],pot:['Potentiometer','Drag the contact along the uniform 100 mm track.',{v:8,p:50}],load:['Loaded potential divider','Connect a load and observe the effect on output voltage.',{v:12,a:50,b:10,r:10,connected:false}]};
@@ -21,4 +32,50 @@ if(mode==='load'){let rp=s.connected?s.b*s.r/(s.b+s.r):s.b;i=s.v/(s.a+rp);o=i*rp
 $('svg').innerHTML=h;$('metrics').innerHTML=m;$('formula').textContent=hide?'Predict before revealing the readings.':fo;$('note').textContent=hide?'Explain your prediction using Ohm’s law.':nt;$('bar').innerHTML=vs.map((v,j)=>'<span style="width:'+v/s.v*100+'%;background:'+['#1f4e79','#137a53','#b45309'][j===vs.length-1?2:j]+'">'+(hide?'?':f(v)+' V')+'</span>').join('');if($('hit'))$('hit').onpointerdown=e=>{e.preventDefault();drag=true;move(e)}}
 let drag=false;function move(e){const svg=$('svg'),p=svg.createSVGPoint();p.x=e.clientX;p.y=e.clientY;const q=p.matrixTransform(svg.getScreenCTM().inverse());s.p=Math.max(0,Math.min(100,Math.round((q.x-105)/445*1000)/10));$('p').value=s.p;render()}document.onpointermove=e=>{if(drag){e.preventDefault();move(e)}};document.onpointerup=document.onpointercancel=()=>drag=false;
 $('reset').onclick=()=>{s={...cfg[2]};hide=false;$('hide').textContent='Hide readings';controls();render()};$('hide').onclick=()=>{hide=!hide;$('hide').textContent=hide?'Reveal readings':'Hide readings';render()};controls();render();
+</script><script id="touch-controls-script">
+(function(){
+'use strict';
+const controls=document.getElementById('controls');
+if(!controls)return;
+function setAt(el,x){
+ const r=el.getBoundingClientRect(), min=Number(el.min||0),max=Number(el.max||100),step=Number(el.step)||1;
+ const frac=Math.max(0,Math.min(1,(x-r.left-13)/Math.max(1,r.width-26)));
+ const val=Math.max(min,Math.min(max,min+Math.round((max-min)*frac/step)*step));
+ el.value=String(Number(val.toFixed(8)));
+ el.dispatchEvent(new Event('input',{bubbles:true}));
+}
+function adjust(el,d){
+ const old=el.value;
+ if(d>0)el.stepUp();else el.stepDown();
+ if(el.value!==old){el.dispatchEvent(new Event('input',{bubbles:true}));el.dispatchEvent(new Event('change',{bubbles:true}));}
+}
+function wire(el){
+ if(el.dataset.touchReady)return;
+ el.dataset.touchReady='1';
+ const row=document.createElement('div');row.className='touch-range-row';
+ // A label may contain the range; keep the new buttons outside the label to avoid label activation.
+ const parent=el.parentElement;
+ if(parent.tagName==='LABEL')parent.after(row);else el.before(row);
+ const make=(d)=>{const b=document.createElement('button');b.type='button';b.className='touch-adjust';b.textContent=d>0?'+':'−';b.setAttribute('aria-label',(d>0?'Increase ':'Decrease ')+(el.getAttribute('aria-label')||el.id));b.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();adjust(el,d)});return b};
+ row.append(make(-1),el,make(1));
+ let active=null;
+ el.addEventListener('pointerdown',e=>{
+  if(e.pointerType==='mouse')return;
+  e.preventDefault();e.stopPropagation();active=e.pointerId;
+  try{el.setPointerCapture(e.pointerId)}catch(_){}
+  setAt(el,e.clientX);
+ },{passive:false});
+ el.addEventListener('pointermove',e=>{if(active!==e.pointerId)return;e.preventDefault();e.stopPropagation();setAt(el,e.clientX)},{passive:false});
+ function end(e){if(active!==e.pointerId)return;e.preventDefault();e.stopPropagation();active=null;el.dispatchEvent(new Event('change',{bubbles:true}));}
+ el.addEventListener('pointerup',end,{passive:false});el.addEventListener('pointercancel',end,{passive:false});
+ el.addEventListener('lostpointercapture',()=>{active=null});
+ // Older webviews without Pointer Events.
+ if(!window.PointerEvent){
+  const update=e=>{if(!e.touches.length)return;e.preventDefault();e.stopPropagation();setAt(el,e.touches[0].clientX)};
+  el.addEventListener('touchstart',update,{passive:false});el.addEventListener('touchmove',update,{passive:false});
+ }
+}
+function scan(){controls.querySelectorAll('input[type=range]').forEach(wire)}
+scan();new MutationObserver(scan).observe(controls,{childList:true,subtree:true});
+})();
 </script></html>
