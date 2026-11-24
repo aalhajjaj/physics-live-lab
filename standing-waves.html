@@ -1,5 +1,16 @@
 <!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Physics Live Lab | Standing Waves</title><style>
-*{box-sizing:border-box}body{margin:0;background:#f4f7fb;color:#172e4d;font:16px system-ui,sans-serif}main{display:grid;grid-template-columns:minmax(225px,27%) 1fr;gap:12px;padding:12px;min-height:100vh}aside,article{background:white;border:1px solid #dce5f0;border-radius:14px;padding:14px}h2{font-size:20px;margin:0 0 6px}p{margin:8px 0;line-height:1.35}label{display:block;font-size:14px;font-weight:650;margin-top:12px}input{width:100%;accent-color:#2563eb}output{float:right;color:#1d4ed8}button{border:1px solid #c9d8e9;background:#eff6ff;color:#17365d;border-radius:8px;padding:8px 10px;font-weight:650;cursor:pointer;margin:5px 3px 0 0}button:focus{outline:2px solid #2563eb}canvas{display:block;width:100%;height:clamp(220px,55vh,520px);background:#fcfdff;border-radius:8px}#stats{font-size:16px;font-weight:650;min-height:48px;padding:8px;background:#eef5ff;border-radius:8px}#legend{font-size:13px;color:#435b76}#task{border-left:3px solid #2563eb;padding-left:9px;font-size:14px}#table{font:13px system-ui;max-height:100px;overflow:auto} @media(max-width:600px){main{grid-template-columns:1fr}canvas{height:270px}}</style>
+*{box-sizing:border-box}body{margin:0;background:#f4f7fb;color:#172e4d;font:16px system-ui,sans-serif}main{display:grid;grid-template-columns:minmax(225px,27%) 1fr;gap:12px;padding:12px;min-height:100vh}aside,article{background:white;border:1px solid #dce5f0;border-radius:14px;padding:14px}h2{font-size:20px;margin:0 0 6px}p{margin:8px 0;line-height:1.35}label{display:block;font-size:14px;font-weight:650;margin-top:12px}input{width:100%;accent-color:#2563eb}output{float:right;color:#1d4ed8}button{border:1px solid #c9d8e9;background:#eff6ff;color:#17365d;border-radius:8px;padding:8px 10px;font-weight:650;cursor:pointer;margin:5px 3px 0 0}button:focus{outline:2px solid #2563eb}canvas{display:block;width:100%;height:clamp(220px,55vh,520px);background:#fcfdff;border-radius:8px}#stats{font-size:16px;font-weight:650;min-height:48px;padding:8px;background:#eef5ff;border-radius:8px}#legend{font-size:13px;color:#435b76}#task{border-left:3px solid #2563eb;padding-left:9px;font-size:14px}#table{font:13px system-ui;max-height:100px;overflow:auto} @media(max-width:600px){main{grid-template-columns:1fr}canvas{height:270px}}</style><style id="touch-controls-style">
+html,body{overscroll-behavior:none}
+#controls{touch-action:pan-y}
+.touch-range-row{display:grid;grid-template-columns:42px minmax(0,1fr) 42px;align-items:center;gap:5px;margin:2px 0 4px}
+.touch-range-row input[type=range]{width:100%;min-width:0;height:40px;margin:0;touch-action:none;user-select:none;-webkit-user-select:none;cursor:ew-resize}
+.touch-range-row input[type=range]::-webkit-slider-thumb{width:26px;height:26px}
+.touch-range-row button{min-width:42px;height:40px;margin:0;padding:0;font-size:24px;line-height:1;touch-action:none;user-select:none;-webkit-user-select:none}
+button,select,input[type=checkbox]{touch-action:manipulation}
+button:not(.touch-adjust){min-height:38px}
+label:has(.touch-range-row){margin-top:7px}
+@media (max-height:520px){.touch-range-row{grid-template-columns:36px minmax(0,1fr) 36px;gap:3px;margin:0}.touch-range-row button{min-width:36px;height:34px}.touch-range-row input[type=range]{height:34px}label:has(.touch-range-row){margin-top:4px}}
+</style>
 <main><aside><h2 id="heading"></h2><p id="task"></p><div id="controls"></div><button id="pause">Pause</button><button id="reset">Reset</button><button id="step">Step</button><div id="extra"></div><p id="legend"></p></aside><article><canvas id="cv" aria-label="Interactive standing wave diagram"></canvas><p id="stats"></p><div id="table"></div></article></main><script>
 const mode=new URLSearchParams(location.search).get('mode')||'superposition';
 const cfg={
@@ -30,4 +41,50 @@ if(mode==='phase'){let positions=[.25/n,.65/n,Math.min(1.25/n,.99)];positions.fo
 text('Fixed end',x0,22);text('Fixed end',x1-65,22);$('stats').textContent=mode==='harmonics'?'Drive '+v('drive')+' Hz • nearest mode n = '+n+' at '+f.toFixed(1)+' Hz • '+(det<.06?'near resonance':'off resonance (weak response)')+' • λ = '+wl.toFixed(2)+' m (ideal mode)':'n = '+n+' • λ = '+wl.toFixed(3)+' m • v = '+s.toFixed(1)+' m/s • f = '+f.toFixed(1)+' Hz';
 }
 function frame(now){let dt=Math.min(.05,(now-last)/1000);last=now;if(!paused)t+=dt*v('rate');draw();requestAnimationFrame(frame)}requestAnimationFrame(frame);
+</script><script id="touch-controls-script">
+(function(){
+'use strict';
+const controls=document.getElementById('controls');
+if(!controls)return;
+function setAt(el,x){
+ const r=el.getBoundingClientRect(), min=Number(el.min||0),max=Number(el.max||100),step=Number(el.step)||1;
+ const frac=Math.max(0,Math.min(1,(x-r.left-13)/Math.max(1,r.width-26)));
+ const val=Math.max(min,Math.min(max,min+Math.round((max-min)*frac/step)*step));
+ el.value=String(Number(val.toFixed(8)));
+ el.dispatchEvent(new Event('input',{bubbles:true}));
+}
+function adjust(el,d){
+ const old=el.value;
+ if(d>0)el.stepUp();else el.stepDown();
+ if(el.value!==old){el.dispatchEvent(new Event('input',{bubbles:true}));el.dispatchEvent(new Event('change',{bubbles:true}));}
+}
+function wire(el){
+ if(el.dataset.touchReady)return;
+ el.dataset.touchReady='1';
+ const row=document.createElement('div');row.className='touch-range-row';
+ // A label may contain the range; keep the new buttons outside the label to avoid label activation.
+ const parent=el.parentElement;
+ if(parent.tagName==='LABEL')parent.after(row);else el.before(row);
+ const make=(d)=>{const b=document.createElement('button');b.type='button';b.className='touch-adjust';b.textContent=d>0?'+':'−';b.setAttribute('aria-label',(d>0?'Increase ':'Decrease ')+(el.getAttribute('aria-label')||el.id));b.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();adjust(el,d)});return b};
+ row.append(make(-1),el,make(1));
+ let active=null;
+ el.addEventListener('pointerdown',e=>{
+  if(e.pointerType==='mouse')return;
+  e.preventDefault();e.stopPropagation();active=e.pointerId;
+  try{el.setPointerCapture(e.pointerId)}catch(_){}
+  setAt(el,e.clientX);
+ },{passive:false});
+ el.addEventListener('pointermove',e=>{if(active!==e.pointerId)return;e.preventDefault();e.stopPropagation();setAt(el,e.clientX)},{passive:false});
+ function end(e){if(active!==e.pointerId)return;e.preventDefault();e.stopPropagation();active=null;el.dispatchEvent(new Event('change',{bubbles:true}));}
+ el.addEventListener('pointerup',end,{passive:false});el.addEventListener('pointercancel',end,{passive:false});
+ el.addEventListener('lostpointercapture',()=>{active=null});
+ // Older webviews without Pointer Events.
+ if(!window.PointerEvent){
+  const update=e=>{if(!e.touches.length)return;e.preventDefault();e.stopPropagation();setAt(el,e.touches[0].clientX)};
+  el.addEventListener('touchstart',update,{passive:false});el.addEventListener('touchmove',update,{passive:false});
+ }
+}
+function scan(){controls.querySelectorAll('input[type=range]').forEach(wire)}
+scan();new MutationObserver(scan).observe(controls,{childList:true,subtree:true});
+})();
 </script></html>
